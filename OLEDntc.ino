@@ -9,44 +9,83 @@ Adafruit_SSD1306 display(OLED_RESET);
 //NTC set up
 int ThermistorPin = 0;
 int Vo;
-float R1 = 10000;
-float logR2, R2, T, Tc, Tf;
-float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
-
 
 void setup() { 
     
     //Initialize display by providing the display type and its I2C address. 
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C); 
     
-    //Set the text size and color. 
-    display.setTextSize(1); 
+    //Set the text color. 
     display.setTextColor(SSD1306_WHITE); 
 } 
 
 void loop() { 
 
-
     //Temp calculations
     Vo = analogRead(ThermistorPin);
-    R2 = R1 * (1023.0 / (float)Vo - 1.0);
-    logR2 = log(R2);
-    T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
-    Tc = T - 273.15 - 8.00;                //Celsius
-    Tf = (Tc * 9.0)/ 5.0 + 32.0;           //Fahrenheit
 
+    //Opening screen
+    display.setTextSize(1);
+    display.display();
+    delay(5000);
 
-    //Clear previous image. 
-    display.clearDisplay(); 
-    display.setCursor(0, 0); 
-    display.print("Current Temperature");
+    //Display Celsisus Temp
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print("Current Temp - C");
     display.setTextSize(2);
-    display.setCursor(10, 10);
-    display.print(Tf);
-    display.setTextSize(1);     //set back to size 1 for header line.
-    
-    //Display changes if any were made. 
-    display.display(); 
+    display.setCursor(12,10);
+    display.print(getCelsius(readThermistor((float)Vo), -3.0));
+    display.display();
+
+    delay(5000);
+
+    //Display Fahrenheit Temp
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0,0);
+    display.print("Current Temp - F");
+    display.setTextSize(2);
+    display.setCursor(12,10);
+    display.print(getFahrenheit(readThermistor((float)Vo), -6.0));
+    display.display();
     
     delay(5000);
+    Vo = 0;
 } 
+
+
+//Function to Return a Raw Thermistor/temperature value
+float readThermistor(float VoltIn){
+
+    float R1 = 10000;
+    float R2;
+    float logR2;
+    float T;
+    float c1 = 1.009249522e-03;
+    float c2 = 2.378405444e-04;
+    float c3 = 2.019202697e-07;
+
+    R2 = R1 * (1023.0 / VoltIn - 1.0);
+    logR2 = log(R2);
+    T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
+    return T;
+}
+
+//Function to convert Raw temp value to Celsius, with calibration value
+float getCelsius(float RawT, float cal){
+
+    float celsius;
+    celsius = RawT - 273.15 + cal;
+    return celsius;
+}
+
+//Function to convert Raw temp value to Fahrenheit, with calibration value
+float getFahrenheit(float RawT, float cal){
+
+    float celsius = getCelsius(RawT, 0.0);
+    float fahrenheit = celsius * ( 9.0/ 5.0 ) + 32.0 + cal;
+    return fahrenheit;
+
+}
